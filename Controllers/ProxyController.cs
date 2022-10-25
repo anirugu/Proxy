@@ -12,12 +12,12 @@ namespace Proxy.Controllers
     [ApiController]
     public class ProxyController : ControllerBase
     {
-        private readonly HttpClient client;
+        private readonly IHttpClientFactory clientFactory;
         private readonly IConfiguration configuration;
 
-        public ProxyController(HttpClient client, IConfiguration config)
+        public ProxyController(IHttpClientFactory clientFactory, IConfiguration config)
         {
-            this.client = client;
+            this.clientFactory = clientFactory;
             this.configuration = config;
         }
 
@@ -25,25 +25,11 @@ namespace Proxy.Controllers
         [ResponseCache(Duration = 2592000, Location = ResponseCacheLocation.Any, NoStore = false)]
         public async Task<IActionResult> Get([FromQuery] string url)
         {
-            string dir = configuration["dir"];
-            string fileName = url.SanitizeName();
-            var path = Path.Combine(dir, fileName);
             try
             {
-                if (System.IO.File.Exists(path))
-                {
-                    return PhysicalFile(path, "application/json");
-                }
-                else
-                {
-                    var response = await this.client.GetAsync(url);
-                    using (var fs = new FileStream(path,
-                        FileMode.CreateNew))
-                    {
-                        await response.Content.CopyToAsync(fs);
-                    }
-                    return PhysicalFile(path, "application/json");
-                }
+                var client = this.clientFactory.CreateClient();
+                var response = await client.GetStreamAsync(url);
+                return File(response, "application/json");
             }
             catch (Exception ex)
             {
