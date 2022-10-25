@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.IIS.Core;
+using Microsoft.Extensions.Hosting.Internal;
+using System;
 
 namespace Proxy.Controllers
 {
@@ -20,7 +22,8 @@ namespace Proxy.Controllers
         }
 
         [HttpGet]
-        public async Task<string> Get([FromQuery] string url)
+        [ResponseCache(Duration = 2592000, Location = ResponseCacheLocation.Any, NoStore = false)]
+        public async Task<IActionResult> Get([FromQuery] string url)
         {
             string dir = configuration["dir"];
             string fileName = url.SanitizeName();
@@ -29,20 +32,24 @@ namespace Proxy.Controllers
             {
                 if (System.IO.File.Exists(path))
                 {
-                    return await System.IO.File.ReadAllTextAsync(path);
+                    return PhysicalFile(path, "application/json");
                 }
                 else
                 {
-                    string response = await this.client.GetStringAsync(url);
-                    System.IO.File.WriteAllText(path, response);
-                    return response;
+                    var response = await this.client.GetAsync(url);
+                    using (var fs = new FileStream(path,
+                        FileMode.CreateNew))
+                    {
+                        await response.Content.CopyToAsync(fs);
+                    }
+                    return PhysicalFile(path, "application/json");
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw;
             }
-            
+
         }
     }
 }
