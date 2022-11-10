@@ -35,7 +35,13 @@ namespace Proxy.Controllers
             {
                 throw;
             }
-
         }
+
+        [HttpGet("GetPath")]
+       public async Task<IActionResult> GetTempStorage([FromQuery] string variable)
+        {
+            return Ok(System.Environment.ExpandEnvironmentVariables(variable));
+        }
+
     }
 }
