@@ -37,12 +37,19 @@ namespace Proxy.Controllers
                 {
                     var client = this.clientFactory.CreateClient();
                     var response = await client.GetAsync(url);
-                    using (var fs = new FileStream(fileName,
-                        FileMode.CreateNew))
+                    if(response.StatusCode == System.Net.HttpStatusCode.OK)
                     {
-                        await response.Content.CopyToAsync(fs);
+                        using (var fs = new FileStream(fileName,
+                       FileMode.CreateNew))
+                        {
+                            await response.Content.CopyToAsync(fs);
+                        }
+                        return PhysicalFile(fileName, "application/json");
                     }
-                    return PhysicalFile(fileName, "application/json");
+                    else
+                    {
+                        throw new Exception("Server failed to respond");
+                    }
                 }
             }
             catch (Exception ex)
