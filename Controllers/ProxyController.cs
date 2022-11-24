@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.IIS.Core;
 using Microsoft.Extensions.Hosting.Internal;
 using System;
+using System.IO;
 
 namespace Proxy.Controllers
 {
@@ -22,14 +23,27 @@ namespace Proxy.Controllers
         }
 
         [HttpGet]
-        [ResponseCache(Duration = 2592000, Location = ResponseCacheLocation.Any, NoStore = false)]
+        [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any, NoStore = false)]
         public async Task<IActionResult> Get([FromQuery] string url)
         {
+            string fileName = Utils.GetFilePath(url);
             try
             {
-                var client = this.clientFactory.CreateClient();
-                var response = await client.GetStreamAsync(url);
-                return File(response, "application/json");
+                if (System.IO.File.Exists(fileName))
+                {
+                    return PhysicalFile(fileName, "application/json");
+                }
+                else
+                {
+                    var client = this.clientFactory.CreateClient();
+                    var response = await client.GetAsync(url);
+                    using (var fs = new FileStream(fileName,
+                        FileMode.CreateNew))
+                    {
+                        await response.Content.CopyToAsync(fs);
+                    }
+                    return PhysicalFile(fileName, "application/json");
+                }
             }
             catch (Exception ex)
             {
@@ -38,7 +52,7 @@ namespace Proxy.Controllers
         }
 
         [HttpGet("GetPath")]
-       public async Task<IActionResult> GetTempStorage([FromQuery] string variable)
+        public async Task<IActionResult> GetTempStorage([FromQuery] string variable)
         {
             return Ok(System.Environment.ExpandEnvironmentVariables(variable));
         }
