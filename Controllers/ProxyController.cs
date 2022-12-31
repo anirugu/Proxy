@@ -37,7 +37,7 @@ namespace Proxy.Controllers
                 {
                     var client = this.clientFactory.CreateClient();
                     var response = await client.GetAsync(url);
-                    if(response.StatusCode == System.Net.HttpStatusCode.OK)
+                    if (response.StatusCode == System.Net.HttpStatusCode.OK)
                     {
                         using (var fs = new FileStream(fileName,
                        FileMode.CreateNew))
