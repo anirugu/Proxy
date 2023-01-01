@@ -1,3 +1,5 @@
+using Proxy.Models;
+
 namespace Proxy
 {
     public class Program
@@ -17,7 +19,7 @@ namespace Proxy
             {
                 c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin());
             });
-
+            builder.Services.AddSingleton<IProxyService, ProxyService>();
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.

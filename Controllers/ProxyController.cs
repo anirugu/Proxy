@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Server.IIS.Core;
 using Microsoft.Extensions.Hosting.Internal;
 using System;
 using System.IO;
+using Proxy.Models;
 
 namespace Proxy.Controllers
 {
@@ -13,49 +14,21 @@ namespace Proxy.Controllers
     [ApiController]
     public class ProxyController : ControllerBase
     {
-        private readonly IHttpClientFactory clientFactory;
-        private readonly IConfiguration configuration;
+        //private readonly IHttpClientFactory clientFactory;
+        //private readonly IConfiguration configuration;
+        private readonly IProxyService _proxyService;
 
-        public ProxyController(IHttpClientFactory clientFactory, IConfiguration config)
+        public ProxyController(IProxyService proxyService)
         {
-            this.clientFactory = clientFactory;
-            this.configuration = config;
+            _proxyService = proxyService;
         }
 
         [HttpGet]
         [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any, NoStore = false)]
         public async Task<IActionResult> Get([FromQuery] string url)
         {
-            string fileName = Utils.GetFilePath(url);
-            try
-            {
-                if (System.IO.File.Exists(fileName))
-                {
-                    return PhysicalFile(fileName, "application/json");
-                }
-                else
-                {
-                    var client = this.clientFactory.CreateClient();
-                    var response = await client.GetAsync(url);
-                    if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                    {
-                        using (var fs = new FileStream(fileName,
-                       FileMode.CreateNew))
-                        {
-                            await response.Content.CopyToAsync(fs);
-                        }
-                        return PhysicalFile(fileName, "application/json");
-                    }
-                    else
-                    {
-                        throw new Exception("Server failed to respond");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            var fileName = await _proxyService.GetResult(url);
+            return PhysicalFile(fileName, "application/json");
         }
 
         [HttpGet("GetPath")]
